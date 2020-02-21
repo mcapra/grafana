@@ -29,7 +29,9 @@ module GrafanaCookbook
       )
 
       # sorry for the fancy hackery - rubists are welcome to make this better
-      response['set-cookie'][/grafana_sess=(\w+);/, 1]
+      cookie = response['set-cookie']
+      regex = '(\w+)=([a-f0-9]{32});' 
+      {'login_cookie_name' => cookie[/#{regex}/, 1], 'session_id' => cookie[/#{regex}/, 2]}
     rescue BackendError
       nil
     end
@@ -76,8 +78,8 @@ module GrafanaCookbook
       if grafana_options[:auth_proxy_header]
         request.add_field(grafana_options[:auth_proxy_header], grafana_options[:user])
       else
-        session_id = login(grafana_options[:host], grafana_options[:port], grafana_options[:user], grafana_options[:password])
-        request.add_field('Cookie', "grafana_user=#{grafana_options[:user]}; grafana_sess=#{session_id};")
+        session = login(grafana_options[:host], grafana_options[:port], grafana_options[:user], grafana_options[:password])
+        request.add_field('Cookie', "session=#{grafana_options[:user]}; #{session['login_cookie_name']}=#{session['session_id']};")
       end
       request.add_field('Content-Type', 'application/json;charset=utf-8;')
       request.add_field('Accept', 'application/json')
